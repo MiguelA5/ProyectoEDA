@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actividades del Estudiante</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+        var actividadAsignada; // Variable para almacenar la actividad asignada
+
+        $(document).ready(function() {
+            // Hacer una solicitud AJAX para obtener las actividades asignadas al estudiante
+            $.ajax({
+                url: 'getActividadesAsignadas.php', // Asegúrate de tener este archivo implementado
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    // Verificar si se asignó alguna actividad
+                    if (data.length > 0) {
+                        actividadAsignada = data[0]; // Tomar la primera actividad asignada (puedes ajustar esto según tus necesidades)
+
+                        // Mostrar la información de la actividad asignada
+                        $('#activityName').text(actividadAsignada.nombre);
+                        $('#activityType').text(actividadAsignada.tipo);
+                        $('#activityDescription').text(actividadAsignada.descripcion);
+
+                        // Mostrar la sección de actividad asignada
+                        $('#studentActivitySection').css('display', 'block');
+                    } else {
+                        // No hay actividades asignadas
+                        $('#noAssignedActivity').css('display', 'block');
+                    }
+                },
+                error: function(error) {
+                    console.error('Error al obtener actividades asignadas:', error);
+                }
+            });
+        });
+
+        function resolverActividad() {
+            var studentResponse = $('#studentResponse').val();
+
+            // Puedes realizar acciones adicionales aquí, como almacenar la respuesta o enviarla a un servidor
+
+            alert('Actividad seleccionada por el estudiante:\nID de Actividad: ' + actividadAsignada.id + '\nRespuesta: ' + studentResponse);
+        }
+    </script>
+    <style>
+        /* Estilos... (se mantienen iguales) */
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="activity-form">
+        <h2>Actividad Asignada (Estudiante)</h2>
+
+        <!-- Sección de actividad asignada -->
+        <div id="studentActivitySection" style="display: none;">
+            <div class="form-group">
+                <label for="activityName">Nombre de la Actividad:</label>
+                <p id="activityName"></p>
+            </div>
+
+            <div class="form-group">
+                <label for="activityType">Tipo de Actividad:</label>
+                <p id="activityType"></p>
+            </div>
+
+            <div class="form-group">
+                <label for="activityDescription">Descripción:</label>
+                <p id="activityDescription"></p>
+            </div>
+
+            <div class="form-group">
+                <label for="studentResponse">Tu Respuesta:</label>
+                <textarea class="form-control" id="studentResponse" rows="4" placeholder="Escribe tu respuesta aquí..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="resolverActividad()">Enviar Respuesta</button>
+        </div>
+
+        <!-- Mensaje si no hay actividades asignadas -->
+        <div id="noAssignedActivity" style="display: none;">
+            <p>No tienes actividades asignadas en este momento.</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

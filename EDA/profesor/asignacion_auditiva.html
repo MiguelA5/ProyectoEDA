@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Actividades</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.2/js/bootstrap.min.js"></script>
+    <script>
+        var actividades = []; // Array para almacenar actividades
+        var assignedActivities = {}; // Objeto para almacenar actividades asignadas a usuarios
+        var studentActivities = {}; // Objeto para almacenar actividades de estudiantes
+
+        $(document).ready(function() {
+            // Hacer una solicitud AJAX para obtener los usuarios
+            $.ajax({
+                url: 'getUsuarios.php',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    // Llenar la lista de usuarios en el formulario de asignar actividad
+                    var select = $('#studentList');
+                    select.empty();
+
+                    $.each(data, function(index, user) {
+                        select.append('<option value="' + user.id + '">' + user.correoUsuario + '</option>');
+                    });
+                },
+                error: function(error) {
+                    console.error('Error al obtener usuarios:', error);
+                }
+            });
+
+            // Hacer una solicitud AJAX para obtener las actividades
+            $.ajax({
+                url: 'getActividades.php',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    // Llenar la lista de actividades en el formulario de asignar actividad
+                    var select = $('#assignedActivityList');
+                    select.empty();
+
+                    $.each(data, function(index, activity) {
+                        select.append('<option value="' + activity.id + '">' + activity.nombre + '</option>');
+                    });
+
+                    // Llenar la lista de actividades en el formulario de realizar actividad (estudiante)
+                    var studentSelect = $('#studentActivityList');
+                    studentSelect.empty();
+
+                    $.each(data, function(index, activity) {
+                        studentSelect.append('<option value="' + activity.id + '">' + activity.nombre + '</option>');
+                    });
+                },
+                error: function(error) {
+                    console.error('Error al obtener actividades:', error);
+                }
+            });
+        });
+
+        function crearActividad() {
+            var nombreActividad = $('#activityName').val();
+            var estiloAprendizaje = $('#learningStyle').val();
+            var tipoActividad = $('#activityType').val();
+
+            // Crear un objeto para la actividad
+            var actividad = {
+                nombre: nombreActividad,
+                estilo: estiloAprendizaje,
+                tipo: tipoActividad
+            };
+
+            // Agregar la actividad al array
+            actividades.push(actividad);
+
+            // Limpiar el formulario
+            $('#createActivityForm')[0].reset();
+
+            // Actualizar la lista de actividades del profesor
+            actualizarListaActividades();
+            actualizarListaActividadesAsignadasProfesor();
+
+            alert('Actividad creada:\nNombre: ' + nombreActividad + '\nEstilo de Aprendizaje: ' + estiloAprendizaje + '\nTipo de Actividad: ' + tipoActividad);
+        }
+
+        function asignarActividad() {
+            var selectedUser = $('#studentList').val();
+            var selectedActivity = $('#assignedActivityList').val();
+
+            // Asignar la actividad al usuario
+            if (!assignedActivities[selectedUser]) {
+                assignedActivities[selectedUser] = [];
+            }
+
+            assignedActivities[selectedUser].push(selectedActivity);
+
+            // Actualizar la lista de actividades asignadas al profesor
+            actualizarListaActividadesAsignadasProfesor();
+
+            alert('Actividad asignada a usuario:\nUsuario: ' + selectedUser + '\nActividad: ' + selectedActivity);
+        }
+
+        function actualizarListaActividades() {
+            var listaActividades = $('#activityList');
+            listaActividades.empty(); // Limpiar la lista
+
+            // Mostrar las actividades en la lista
+            actividades.forEach(function(actividad, index) {
+                var listItem = $('<li></li>').text(`Nombre: ${actividad.nombre}, Estilo: ${actividad.estilo}, Tipo: ${actividad.tipo}`);
+                listaActividades.append(listItem);
+            });
+        }
+
+        function actualizarListaActividadesAsignadasProfesor() {
+            var listaActividadesAsignadasProfesor = $('#assignedActivityListProfesor');
+            listaActividadesAsignadasProfesor.empty(); // Limpiar la lista
+
+            // Mostrar las actividades asignadas en la lista del profesor
+            for (var user in assignedActivities) {
+                assignedActivities[user].forEach(function(activity) {
+                    var listItem = $('<li></li>').text(`Usuario: ${user}, Actividad: ${activity}`);
+                    listaActividadesAsignadasProfesor.append(listItem);
+                });
+            }
+
+            // Actualizar el menú desplegable de actividades asignadas
+            actualizarMenuActividadesAsignadas();
+        }
+
+        function actualizarMenuActividadesAsignadas() {
+            var listaActividadesAsignadas = $('#assignedActivityList');
+            listaActividadesAsignadas.empty(); // Limpiar la lista
+
+            // Mostrar las actividades asignadas en el menú desplegable
+            actividades.forEach(function(actividad, index) {
+                var isAssigned = false;
+                for (var user in assignedActivities) {
+                    if (assignedActivities[user].includes(index.toString())) {
+                        isAssigned = true;
+                        break;
+                    }
+                }
+
+                if (!isAssigned) {
+                    var option = $('<option></option>').attr('value', index).text(`Nombre: ${actividad.nombre}, Estilo: ${actividad.estilo}, Tipo: ${actividad.tipo}`);
+                    listaActividadesAsignadas.append(option);
+                }
+            });
+        }
+
+        function mostrarSeccionActividad() {
+            var selectedActivity = $('#studentActivityList').val();
+            var section = $('#studentActivitySection');
+
+            if (selectedActivity) {
+                section.css('display', 'block');
+            } else {
+                section.css('display', 'none');
+            }
+        }
+
+        function resolverActividad() {
+            var selectedActivity = $('#studentActivityList').val();
+            var studentResponse = $('#studentResponse').val();
+
+            // Almacena la respuesta del estudiante
+            if (!studentActivities[selectedActivity]) {
+                studentActivities[selectedActivity] = [];
+            }
+
+            studentActivities[selectedActivity].push(studentResponse);
+
+            // Puedes realizar acciones adicionales aquí, como almacenar la respuesta o enviarla a un servidor
+
+            alert('Actividad seleccionada por el estudiante:\nNombre: ' + actividades[selectedActivity].nombre + '\nRespuesta: ' + studentResponse);
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .activity-form {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #02fad9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #007bff;
+        }
+        label {
+            font-weight: bold;
+        }
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        #studentActivitySection {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="activity-form">
+        <h2>Crear Actividad (Profesor)</h2>
+        <form id="createActivityForm">
+            <div class="form-group">
+                <label for="activityName">Nombre de la Actividad:</label>
+                <input type="text" class="form-control" id="activityName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="learningStyle">Estilo de Aprendizaje:</label>
+                <select class="form-control" id="learningStyle" required>
+                    <option value="visual">Visual</option>
+                    <option value="auditivo">Auditivo</option>
+                    <option value="kinestesico">Kinestésico</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="activityType">Tipo de Actividad:</label>
+                <select class="form-control" id="activityType" required>
+                    <option value="mapa">Crear un mapa conceptual o diagrama visual</option>
+                    <option value="presentacion">Hacer presentaciones con diapositivas</option>
+                    <option value="videos">Ver y analizar videos educativos</option>
+                    <option value="dibujos">Realizar dibujos o esquemas</option>
+                    <!-- Puedes añadir más opciones según sea necesario -->
+                </select>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="crearActividad()">Crear Actividad</button>
+        </form>
+
+        <h2>Asignar Actividad a Usuario (Profesor)</h2>
+        <form id="assignActivityForm">
+            <div class="form-group">
+                <label for="studentList">Seleccionar Usuario:</label>
+                <select class="form-control" id="studentList" required>
+                    <!-- Las opciones se llenarán dinámicamente mediante AJAX -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="assignedActivityList">Seleccionar Actividad:</label>
+                <select class="form-control" id="assignedActivityList">
+                    <!-- Las opciones se generarán dinámicamente según las actividades creadas -->
+                </select>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="asignarActividad()">Asignar Actividad</button>
+        </form>
+    </div>
+
+    <div class="mt-4">
+        <h2>Actividades Creadas (Profesor)</h2>
+        <ul id="activityList"></ul>
+    </div>
+
+    <div class="mt-4">
+        <h2>Actividades Asignadas a Usuarios (Profesor)</h2>
+        <ul id="assignedActivityListProfesor"></ul>
+    </div>
+
+    <div class="mt-4">
+        <h2>Seleccionar y Resolver Actividad (Estudiante)</h2>
+        <div class="form-group">
+            <label for="studentActivityList">Seleccionar Actividad:</label>
+            <select class="form-control" id="studentActivityList" onchange="mostrarSeccionActividad()">
+                <option value="">Seleccionar actividad...</option>
+            </select>
+        </div>
+
+        <div id="studentActivitySection">
+            <h3>Realizar Actividad</h3>
+            <div class="form-group">
+                <label for="studentResponse">Tu Respuesta:</label>
+                <textarea class="form-control" id="studentResponse" rows="4" placeholder="Escribe tu respuesta aquí..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="resolverActividad()">Enviar Respuesta</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
